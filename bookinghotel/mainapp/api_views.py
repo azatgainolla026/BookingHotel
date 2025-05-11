@@ -173,23 +173,39 @@ class UserBookingDetailAPIView(generics.RetrieveAPIView):
 class CancelBookingAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    @extend_schema(
-        responses=BookingSerializer,
-    )
+    @extend_schema(responses=BookingSerializer)
     def patch(self, request, booking_id):
-        booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+        # Получаем бронирование для текущего пользователя
+        booking = get_object_or_404(Booking, id=booking_id)
 
+        # Проверяем, что это бронирование текущего пользователя
+        if booking.user != request.user:
+            return Response(
+                {"detail": "You cannot cancel someone else's booking."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Если бронирование уже отменено
         if booking.status == Booking.BookingStatus.CANCELLED:
-            return Response({"detail": "Booking is already cancelled."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Booking is already cancelled."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
+        # Обновляем складской запас, если бронирование было подтверждено
         if booking.status == Booking.BookingStatus.CONFIRMED:
             booking.room.stock += 1
             booking.room.save()
 
+        # Меняем статус бронирования на отменённый
         booking.status = Booking.BookingStatus.CANCELLED
         booking.save()
 
-        return Response({"detail": "Booking cancelled successfully."}, status=status.HTTP_200_OK)
+        return Response(
+            {"detail": "Booking cancelled successfully."},
+            status=status.HTTP_200_OK
+        )
+
 
 
 class RegisterAPIView(generics.CreateAPIView):

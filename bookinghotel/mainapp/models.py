@@ -21,7 +21,7 @@ class Hotel(models.Model):
     description = models.TextField()
     city = models.ForeignKey(City, on_delete=models.CASCADE)
     address = models.CharField(max_length=255)
-    image = models.ImageField(upload_to='hotels/')
+    image = models.ImageField(upload_to='hotels/',null=True,blank=True)
 
     def __str__(self):
         return f"{self.name} - {self.city.name}"
