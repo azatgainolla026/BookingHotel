@@ -7,6 +7,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.core.cache import cache
 
 from .models import City, Hotel, Room, Review, Booking, User
 from .serializers import CitySerializer, HotelSerializer, RoomSerializer, ReviewSerializer, UserSerializer, \
@@ -46,12 +47,29 @@ class RoomViewSet(viewsets.ModelViewSet):
         return [IsAdminUser()]
 
 
-class HotelListByCityAPIView(generics.ListAPIView):
+class HotelViewSet(viewsets.ModelViewSet):
+    queryset = Hotel.objects.all()
     serializer_class = HotelSerializer
 
-    def get_queryset(self):
-        return Hotel.objects.filter(city_id=self.kwargs['city_id'])
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAdminUser()]
 
+    def list(self, request, *args, **kwargs):
+        cache_key = "hotels_list"
+        cached_data = cache.get(cache_key)
+
+        if cached_data:
+            return Response(cached_data)
+
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+
+        cache.set(cache_key, data, timeout=300)
+
+        return Response(data)
 
 class RoomListByHotelAPIView(generics.ListAPIView):
     serializer_class = RoomSerializer
@@ -203,7 +221,10 @@ class CancelBookingAPIView(APIView):
 
 
 
-class RegisterAPIView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = RegisterSerializer
-    permission_classes = [AllowAny]
+class RegisterAPIView(APIView):
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Пользователь зарегистрирован"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
