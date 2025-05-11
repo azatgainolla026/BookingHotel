@@ -93,13 +93,20 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
+    password_confirm = serializers.CharField(write_only=True, min_length=8)
     token = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'password', 'token')
+        fields = ('id', 'username', 'email', 'password', 'password_confirm', 'token')
+
+    def validate(self, data):
+        if data['password'] != data['password_confirm']:
+            raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
+        return data
 
     def create(self, validated_data):
+        validated_data.pop('password_confirm')
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data.get('email', ''),
