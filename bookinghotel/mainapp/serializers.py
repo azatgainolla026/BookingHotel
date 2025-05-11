@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import City, Hotel, Room, Booking, Review
 
@@ -38,26 +40,45 @@ class RoomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Room
-        fields = ['id', 'hotel', 'hotel_id', 'room_type', 'price_per_night', 'stock', 'is_available']
+        fields = ['id', 'hotel', 'hotel_id', 'room_type', 'price_per_night', 'stock','image', 'is_available']
+
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_available(self, obj):
+        return obj.is_available
 
 
 
 class BookingSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    user_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), source='user', write_only=True
-    )
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     room = RoomSerializer(read_only=True)
-    room_id = serializers.PrimaryKeyRelatedField(
-        queryset=Room.objects.all(), source='room', write_only=True
-    )
+    total_price = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
         fields = [
-            'id', 'user', 'user_id', 'room', 'room_id',
-            'check_in', 'check_out', 'created_at', 'status'
+            'id',
+            'user',
+            'room',
+            'check_in',
+            'check_out',
+            'created_at',
+            'status',
+            'total_price'
         ]
+        read_only_fields = ['id', 'created_at', 'status']
+
+    def get_total_price(self, obj):
+        nights = (obj.check_out - obj.check_in).days
+        return obj.room.price_per_night * nights
+
+class RoomReserveSerializer(serializers.Serializer):
+    check_in = serializers.DateField()
+    check_out = serializers.DateField()
+
+    def validate(self, data):
+        if data['check_in'] >= data['check_out']:
+            raise serializers.ValidationError("Check-out date must be after check-in.")
+        return data
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -70,5 +91,25 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'user', 'created_at', 'is_positive']
 
 
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, min_length=8)
+    token = serializers.SerializerMethodField()
 
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'password', 'token')
 
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data.get('email', ''),
+            password=validated_data['password']
+        )
+        return user
+
+    def get_token(self, obj):
+        refresh = RefreshToken.for_user(obj)
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
