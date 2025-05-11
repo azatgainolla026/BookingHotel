@@ -5,6 +5,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('',include('mainapp.urls')),
     # api
     path('api/', include('mainapp.api_urls')),
     # silk
