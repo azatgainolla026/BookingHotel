@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .api_views import CityViewSet, HotelViewSet, RoomViewSet, HotelListByCityAPIView, RoomListByHotelAPIView, \
     ReviewListCreateAPIView, ReviewDeleteAPIView, UserProfileAPIView, UserReviewListAPIView, UserReviewDeleteAPIView, \
@@ -23,7 +24,8 @@ urlpatterns = [
     path('user/reserves/', UserBookingListAPIView.as_view(), name='user-reserves'),
     path('user/reserves/<int:pk>/', UserBookingDetailAPIView.as_view(), name='user-booking-detail'),
     path('user/reserves/<int:booking_id>/cancel/', CancelBookingAPIView.as_view(), name='cancel-booking'),
-    path('api/auth/register/', RegisterAPIView.as_view(), name='register'),
+    path('auth/register/', RegisterAPIView.as_view(), name='register'),
+    path('auth/login/', TokenObtainPairView.as_view(), name='login'),
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
 ]
-
