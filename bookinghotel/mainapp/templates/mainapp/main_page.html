@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Бронирование отелей</title>
+  <link rel="stylesheet" href="{% static 'main.css' %}">
+</head>
+<body>
+  <header>
+    <div class="logo">Бронирование отелей</div>
+    <nav>
+      <a href="#">Главная</a>
+      <a href="/about/">О нас</a>
+      <a href="/login/">Вход</a>
+      <a href="/register/">Регистрация</a>
+    </nav>
+  </header>
+
+  <section class="city-list" id="city-list">
+
+  </section>
+
+  <section class="hotel-list" id="hotel-list">
+    <h2>Отели</h2>
+  </section>
+
+  <footer class="footer">
+  <div class="footer-container">
+    <div class="footer-logo">Бронирование отелей</div>
+    <div class="footer-links">
+      <a href="#">О компании</a>
+      <a >Контакты</a>
+      <a href="#">Поддержка</a>
+      <a href="#">Условия</a>
+      <a href="#">Конфиденциальность</a>
+    </div>
+    <div class="footer-copy">
+      &copy; 2025 Бронирование отелей. Все права защищены.
+    </div>
+  </div>
+</footer>
+
+
+
+  <script>
+    const cityList = document.getElementById("city-list");
+    const hotelList = document.getElementById("hotel-list");
+
+    async function fetchCities() {
+      const res = await fetch('/api/cities/');
+      const cities = await res.json();
+
+      cities.forEach(city => {
+        const link = document.createElement('a');
+        link.textContent = city.name;
+        link.onclick = () => fetchHotels(city.id);
+        cityList.appendChild(link);
+      });
+    }
+
+    async function fetchHotels(cityId) {
+      hotelList.innerHTML = '';
+      const res = await fetch(`/api/cities/${cityId}/hotels/`);
+      const hotels = await res.json();
+
+      hotels.forEach(hotel => {
+        const card = document.createElement('div');
+        card.className = 'hotel-card';
+        card.innerHTML = `
+          <img src="${hotel.image || 'https://via.placeholder.com/250x150'}" alt="${hotel.name}">
+          <h3>${hotel.name}</h3>
+          <p>${hotel.address}</p>
+        `;
+        hotelList.appendChild(card);
+      });
+    }
+
+    fetchCities();
+  </script>
+</body>
+</html>

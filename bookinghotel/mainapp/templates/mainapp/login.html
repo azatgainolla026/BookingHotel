@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Вход — Бронирование отелей</title>
+  <link rel="stylesheet" href="{% static 'main.css' %}">
+</head>
+<body>
+  <header>
+    <div class="logo">Бронирование отелей</div>
+  </header>
+
+  <main class="auth-container">
+    <h1>Вход</h1>
+    <form id="login-form">
+      <input type="text" id="username" placeholder="Username" required>
+      <input type="password" id="password" placeholder="Пароль" required>
+      <button type="submit">Войти</button>
+      <p id="login-error" class="error-message"></p>
+    </form>
+  </main>
+
+  <script>
+    const form = document.getElementById('login-form');
+    const errorMessage = document.getElementById('login-error');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const response = await fetch('/api/auth/login/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.detail || 'Ошибка входа');
+        }
+
+        const data = await response.json();
+        localStorage.setItem('access', data.access);
+        localStorage.setItem('refresh', data.refresh);
+        window.location.href = '/';  // Переход на главную страницу
+      } catch (err) {
+        errorMessage.textContent = err.message;
+      }
+    });
+  </script>
+</body>
+</html>
