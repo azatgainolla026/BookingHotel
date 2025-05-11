@@ -12,6 +12,7 @@ router.register(r'hotels', HotelViewSet)
 router.register(r'rooms', RoomViewSet)
 
 urlpatterns = [
+    # api
     path('', include(router.urls)),
     path('cities/<int:city_id>/hotels/', HotelListByCityAPIView.as_view(), name='hotels-by-city'),
     path('hotels/<int:hotel_id>/rooms/', RoomListByHotelAPIView.as_view(), name='rooms-by-hotel'),
