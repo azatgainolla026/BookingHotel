@@ -18,25 +18,25 @@ services:
       - "6379:6379"
 
 
-    web:
-      build: .
-      restart: always
-      container_name: web-back
-      volumes:
-        - .:/app
-        - static_volume:/app/static
-      expose:
-        - "8000"
-      ports:
-        - "8000:8000"
-      depends_on:
-        - db
-        - minio
-        - redis
-      env_file:
-        - .env
-      environment:
-        DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+  web:
+    build: .
+    restart: always
+    container_name: web-back
+    volumes:
+      - .:/app
+      - static_volume:/app/static
+    expose:
+      - "8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - minio
+      - redis
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 
   nginx:
     image: nginx:latest
