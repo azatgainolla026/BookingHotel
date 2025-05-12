@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2 style="text-align: center;">Browse Hotels</h2>
+
+  <div style="text-align: center; margin-bottom: 1rem;">
+    <button onclick="loadAllHotels()">All Hotels</button>
+    <select id="cityFilter" onchange="filterByCity(this.value)">
+      <option value="">Select City</option>
+    </select>
+  </div>
+
+  <div id="hotelsList" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem;">
+    <!-- Hotels will be inserted here -->
+  </div>
+
+  <script>
+    const hotelsList = document.getElementById('hotelsList');
+    const cityFilter = document.getElementById('cityFilter');
+
+    async function loadCities() {
+      try {
+        const res = await fetch('/api/cities/');
+        const cities = await res.json();
+        cities.forEach(city => {
+          const option = document.createElement('option');
+          option.value = city.id;
+          option.textContent = city.name;
+          cityFilter.appendChild(option);
+        });
+      } catch (err) {
+        console.error('Failed to load cities:', err);
+      }
+    }
+
+    async function loadAllHotels() {
+      try {
+        const res = await fetch('/api/hotels/');
+        const hotels = await res.json();
+        renderHotels(hotels);
+      } catch (err) {
+        console.error('Failed to load hotels:', err);
+      }
+    }
+
+    async function filterByCity(cityId) {
+      if (!cityId) {
+        loadAllHotels();
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/cities/${cityId}/hotels/`);
+        const hotels = await res.json();
+        renderHotels(hotels);
+      } catch (err) {
+        console.error('Failed to filter hotels by city:', err);
+      }
+    }
+
+    function renderHotels(hotels) {
+      hotelsList.innerHTML = '';
+
+      if (!hotels.length) {
+        hotelsList.innerHTML = '<p>No hotels found.</p>';
+        return;
+      }
+
+      hotels.forEach(hotel => {
+        const cardWrapper = document.createElement('a');
+        cardWrapper.href = `/hotels/${hotel.id}/`;
+        cardWrapper.style.textDecoration = 'none';
+        cardWrapper.style.color = 'inherit';
+
+        const card = document.createElement('div');
+        card.style.border = '1px solid #ccc';
+        card.style.borderRadius = '8px';
+        card.style.width = '300px';
+        card.style.padding = '1rem';
+        card.style.background = 'white';
+        card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.1)';
+        card.style.transition = 'transform 0.2s';
+        card.onmouseover = () => card.style.transform = 'scale(1.02)';
+        card.onmouseout = () => card.style.transform = 'scale(1)';
+
+        card.innerHTML = `
+          <img src="${hotel.image}" alt="${hotel.name}" style="width:100%; height: 180px; object-fit: cover; border-radius: 4px;" />
+          <h3>${hotel.name}</h3>
+          <p><strong>City:</strong> ${hotel.city.name}</p>
+          <p><strong>Address:</strong> ${hotel.address}</p>
+          <p>${hotel.description}</p>
+        `;
+
+        cardWrapper.appendChild(card);
+        hotelsList.appendChild(cardWrapper);
+      });
+    }
+
+    // Initial load
+    loadCities();
+    loadAllHotels();
+  </script>
+{% endblock %}

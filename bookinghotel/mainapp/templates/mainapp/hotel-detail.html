@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div style="max-width: 900px; margin: auto; padding: 1rem;">
+    <div id="hotelInfo" style="margin-bottom: 2rem;">
+      <!-- Hotel info will be loaded here -->
+    </div>
+
+    <h3>Available Rooms</h3>
+    <div id="roomList" style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+      <!-- Room cards -->
+    </div>
+
+    <h3>Reviews</h3>
+    <div id="reviewControls" style="margin-bottom: 1rem;">
+      <!-- Leave review button (if token present) -->
+    </div>
+    <div id="reviewList" style="display: flex; flex-direction: column; gap: 1rem;">
+      <!-- Average rating + Reviews -->
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="reviewModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+       background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+    <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 400px; width: 100%;">
+      <h3>Leave a Review</h3>
+      <label>Rating (1-5):</label><br />
+      <input id="ratingInput" type="number" min="1" max="5" style="width: 100%; margin-bottom: 1rem;" /><br />
+      <label>Comment:</label><br />
+      <textarea id="commentInput" rows="4" style="width: 100%; margin-bottom: 1rem;"></textarea><br />
+      <button onclick="submitReview()">Submit</button>
+      <button onclick="closeModal()" style="margin-left: 1rem;">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    const pathParts = window.location.pathname.split('/');
+    const hotelId = pathParts[pathParts.length - 2] || pathParts[pathParts.length - 1];
+
+    function closeModal() {
+      document.getElementById('reviewModal').style.display = 'none';
+    }
+
+    function openModal() {
+      document.getElementById('reviewModal').style.display = 'flex';
+    }
+
+    async function loadHotelDetails() {
+      const res = await fetch(`/api/hotels/${hotelId}/`);
+      const hotel = await res.json();
+
+      const container = document.getElementById('hotelInfo');
+      container.innerHTML = `
+        <h2>${hotel.name}</h2>
+        <img src="${hotel.image}" style="width:100%; max-height:400px; object-fit:cover; border-radius: 8px;" />
+        <p><strong>City:</strong> ${hotel.city.name}</p>
+        <p><strong>Address:</strong> ${hotel.address}</p>
+        <p>${hotel.description}</p>
+        <hr />
+      `;
+    }
+
+    async function loadRooms() {
+      const res = await fetch(`/api/hotels/${hotelId}/rooms/`);
+      const rooms = await res.json();
+      const list = document.getElementById('roomList');
+      list.innerHTML = '';
+
+      if (!rooms.length) {
+        list.innerHTML = '<p>No rooms available.</p>';
+        return;
+      }
+
+      rooms.forEach(room => {
+        const card = document.createElement('a');
+        card.href = `/rooms/${room.id}/`;
+        card.style.textDecoration = 'none';
+        card.style.color = 'inherit';
+
+        const inner = document.createElement('div');
+        inner.style.border = '1px solid #ccc';
+        inner.style.borderRadius = '8px';
+        inner.style.width = '280px';
+        inner.style.padding = '1rem';
+        inner.style.background = 'white';
+        inner.style.boxShadow = '0 2px 6px rgba(0,0,0,0.1)';
+        inner.style.transition = 'transform 0.2s';
+        inner.onmouseover = () => inner.style.transform = 'scale(1.02)';
+        inner.onmouseout = () => inner.style.transform = 'scale(1)';
+
+        inner.innerHTML = `
+          <img src="${room.image}" alt="${room.room_type}" style="width:100%; height: 150px; object-fit: cover; border-radius: 4px;" />
+          <h4>${room.room_type}</h4>
+          <p><strong>Price:</strong> $${room.price_per_night} / night</p>
+          <p><strong>Available:</strong> ${room.stock}</p>
+        `;
+        card.appendChild(inner);
+        list.appendChild(card);
+      });
+    }
+
+    async function loadReviews() {
+      try {
+        const res = await fetch(`/api/hotels/${hotelId}/reviews/`);
+        const data = await res.json();
+        const reviews = data.reviews;
+        const average = data.average_rating;
+        const container = document.getElementById('reviewList');
+        container.innerHTML = '';
+
+        // Average rating block
+        const avgEl = document.createElement('div');
+        avgEl.style.padding = '0.5rem 0';
+        avgEl.style.fontSize = '1.1rem';
+        avgEl.innerHTML = `<strong>Average Rating:</strong> ${'⭐'.repeat(Math.round(average))} (${average.toFixed(1)})`;
+        container.appendChild(avgEl);
+
+        if (!reviews.length) {
+          container.innerHTML += '<p>No reviews yet.</p>';
+          return;
+        }
+
+        reviews.forEach(review => {
+          const card = document.createElement('div');
+          card.style.border = '1px solid #ddd';
+          card.style.borderRadius = '6px';
+          card.style.padding = '1rem';
+          card.style.background = 'white';
+
+          const date = review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Unknown';
+
+          card.innerHTML = `
+            <strong>${review.user.username}</strong>
+            <span style="color: #888;">(${date})</span>
+            <p>Rating: ${'⭐'.repeat(review.rating)}</p>
+            <p>${review.comment}</p>
+          `;
+          container.appendChild(card);
+        });
+      } catch (error) {
+        console.error('Failed to load reviews:', error);
+      }
+    }
+
+    async function setupReviewButton() {
+      const token = localStorage.getItem('access');
+      const controls = document.getElementById('reviewControls');
+      controls.innerHTML = '';
+
+      if (token) {
+        const btn = document.createElement('button');
+        btn.textContent = 'Leave a Review';
+        btn.onclick = openModal;
+        controls.appendChild(btn);
+      }
+    }
+
+    async function submitReview() {
+      const token = localStorage.getItem('access');
+      if (!token) return;
+
+      const rating = parseInt(document.getElementById('ratingInput').value);
+      const comment = document.getElementById('commentInput').value;
+
+      const res = await fetch(`/api/hotels/${hotelId}/reviews/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ rating, comment })
+      });
+
+      if (res.ok) {
+        closeModal();
+        await loadReviews();
+      } else {
+        alert('Failed to submit review');
+      }
+    }
+
+    loadHotelDetails();
+    loadRooms();
+    loadReviews();
+    setupReviewButton();
+  </script>
+{% endblock %}

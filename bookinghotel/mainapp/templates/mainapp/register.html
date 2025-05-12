@@ -1,88 +1,125 @@
 <!DOCTYPE html>
-{% load static %}
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Регистрация</title>
-  <link rel="stylesheet" href="{% static 'main.css' %}">
+  <title>Register | Hotel Booking</title>
   <style>
-    .error-message { color: red; margin-top: 10px; }
-    .success-message { color: green; margin-top: 10px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .register-container {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 450px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 0.8rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.8rem;
+      background-color: #28a745;
+      border: none;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    .error {
+      color: red;
+      margin-top: 0.5rem;
+      text-align: center;
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .login-link a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    .login-link a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <div class="logo">Бронирование отелей</div>
-  </header>
-
-  <section class="register-form">
-    <h2>Создать аккаунт</h2>
-    <form id="register-form" method="post">
-      {% csrf_token %}
-
-      <label for="username">Имя пользователя:</label>
-      <input type="text" id="username" name="username" required>
-
-      <label for="email">Email:</label>
-      <input type="email" id="email" name="email" required>
-
-      <label for="password">Пароль:</label>
-      <input type="password" id="password" name="password" required>
-
-      <label for="password_confirmation">Подтверждение пароля:</label>
-      <input type="password" id="password_confirmation" name="password_confirmation" required>
-
-      <button type="submit">Зарегистрироваться</button>
-
-      <div id="message" class="error-message"></div>
+  <div class="register-container">
+    <h2>Register</h2>
+    <form id="registerForm">
+      <input type="text" id="username" placeholder="Username" required />
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <input type="password" id="passwordConfirm" placeholder="Confirm Password" required />
+      <button type="submit">Register</button>
     </form>
-  </section>
-
-  <footer class="footer">
-    <div class="footer-container">
-      <div class="footer-logo">Бронирование отелей</div>
-      <div class="footer-copy">&copy; 2025 Все права защищены.</div>
+    <div class="error" id="errorMsg"></div>
+    <div class="login-link">
+      Already have an account? <a href="/login/">Login here</a>
     </div>
-  </footer>
+  </div>
 
   <script>
-    const form = document.getElementById('register-form');
-    const messageBox = document.getElementById('message');
-
-    form.addEventListener('submit', async (e) => {
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
       e.preventDefault();
-      messageBox.textContent = '';
-      messageBox.className = 'error-message';
 
-      const data = {
-        username: form.username.value,
-        email: form.email.value,
-        password: form.password.value,
-        password_confirmation: form.password_confirmation.value
-      };
+      const username = document.getElementById('username').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const password_confirm = document.getElementById('passwordConfirm').value;
 
-      try {
-        const res = await fetch('/api/auth/register/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-          },
-          body: JSON.stringify(data)
-        });
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.textContent = '';
 
-        const result = await res.json();
+      if (password !== password_confirm) {
+        errorMsg.textContent = 'Passwords do not match';
+        return;
+      }
 
-        if (res.ok) {
-          messageBox.className = 'success-message';
-          messageBox.textContent = 'Регистрация успешна! Перенаправление...';
-          setTimeout(() => window.location.href = '/login/', 2000);
-        } else {
-          const errors = result.errors || result;
-          messageBox.textContent = typeof errors === 'string' ? errors : Object.values(errors).flat().join(' ');
-        }
-      } catch (err) {
-        messageBox.textContent = 'Ошибка сети или сервера.';
+      const response = await fetch('/api/auth/register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password, password_confirm })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('access', data.token); // предполагаем, что token — это access
+        window.location.href = '/';
+      } else {
+        const errorData = await response.json();
+        const errors = Object.values(errorData).flat().join(', ');
+        errorMsg.textContent = errors || 'Registration failed';
       }
     });
   </script>

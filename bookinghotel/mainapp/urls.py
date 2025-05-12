@@ -1,11 +1,17 @@
-from . import views
 from django.urls import path
+from django.views.generic import TemplateView
 
 urlpatterns = [
-    path('', views.main_page, name='main_page'),
-    path('about/', views.about_page, name='about_page'),
-    path('login/', views.login_page, name='login_page'),
-    path('register/', views.register_page, name='register_page'),
-    path('profile/', views.profile_view, name='profile'),
-    path('reserves/', views.reserves_page, name='reserves'),
+    # auth pages
+    path('login/', TemplateView.as_view(template_name='mainapp/login.html'), name='login'),
+    path('register/', TemplateView.as_view(template_name='mainapp/register.html'), name='register'),
+
+    # main pages
+    path('hotels/', TemplateView.as_view(template_name='mainapp/hotels.html'), name='hotels'),
+    path('', TemplateView.as_view(template_name='mainapp/main.html'), name='main'),
+    path('profile/', TemplateView.as_view(template_name='mainapp/profile.html'), name='profile'),
+
+    path('hotels/<int:id>/', TemplateView.as_view(template_name='mainapp/hotel-detail.html'), name='hotel_detail'),
+    path('rooms/<int:id>/', TemplateView.as_view(template_name='mainapp/room-detail.html'), name='room_detail')
+
 ]

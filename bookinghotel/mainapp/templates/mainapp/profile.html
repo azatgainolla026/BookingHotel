@@ -1,56 +1,98 @@
-<!DOCTYPE html>
-{% load static %}
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>Профиль пользователя</title>
-  <link rel="stylesheet" href="{% static 'main.css' %}">
-</head>
-<body>
-  <header>
-    <div class="logo">Бронирование отелей</div>
-    <nav>
-      <a href="/">Главная</a>
-      <a href="/logout/">Выйти</a>
-    </nav>
-  </header>
+{% extends "base.html" %}
 
-  <section class="profile-container">
-    <h2>Профиль</h2>
-    <p>Добро пожаловать, {{ user.username }}!</p>
-    <div id="profile-info">
-      <p><strong>Имя пользователя:</strong> <span id="username"></span></p>
-      <p><strong>Email:</strong> <span id="email"></span></p>
+{% block content %}
+  <div style="max-width: 900px; margin: auto; padding: 1rem;">
+    <h2>User Profile</h2>
+
+    <!-- User Profile Information -->
+    <div id="profileInfo" style="margin-bottom: 2rem;">
+      <!-- User info will be loaded here -->
     </div>
 
-    <div class="profile-links">
-      <a href="/reservations/" class="profile-button">Мои бронирования</a>
-      <a href="/reviews/" class="profile-button">Мои отзывы</a>
+    <h3>Your Reservations</h3>
+    <div id="reservationsList">
+      <!-- Reservations will be listed here -->
     </div>
-  </section>
+  </div>
 
   <script>
+    const token = localStorage.getItem('access');
+
+    if (!token) {
+      alert('Please log in to view your profile.');
+      window.location.href = '/login';  // Redirect to login page if token is not present
+    }
+
     async function loadProfile() {
-      try {
-        const res = await fetch('/api/user/profile/', {
-          headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('access_token')
-          }
-        });
+      const res = await fetch('/api/user/profile/', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
-        if (!res.ok) throw new Error('Ошибка получения профиля');
-
-        const data = await res.json();
-        document.getElementById('username').textContent = data.username;
-        document.getElementById('email').textContent = data.email;
-
-      } catch (error) {
-        alert('Ошибка загрузки профиля. Возможно, вы не авторизованы.');
-        window.location.href = '/login/';
+      if (res.ok) {
+        const userProfile = await res.json();
+        const profileContainer = document.getElementById('profileInfo');
+        profileContainer.innerHTML = `
+          <p><strong>Username:</strong> ${userProfile.username}</p>
+          <p><strong>Email:</strong> ${userProfile.email}</p>
+        `;
+      } else {
+        alert('Failed to load profile information.');
       }
     }
 
+    async function loadReservations() {
+      const res = await fetch('/api/user/reserves/', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        const reservations = await res.json();
+        const reservationsContainer = document.getElementById('reservationsList');
+
+        if (reservations.length === 0) {
+          reservationsContainer.innerHTML = '<p>No reservations found.</p>';
+        } else {
+          reservationsContainer.innerHTML = '';
+          reservations.forEach(reservation => {
+            reservationsContainer.innerHTML += `
+              <div style="border: 1px solid #ddd; margin-bottom: 1rem; padding: 1rem;">
+                <h4>${reservation.room.room_type} - ${reservation.room.hotel.name}</h4>
+                <p><strong>Check-in:</strong> ${reservation.check_in}</p>
+                <p><strong>Check-out:</strong> ${reservation.check_out}</p>
+                <p><strong>Status:</strong> ${reservation.status}</p>
+                <p><strong>Total Price:</strong> $${reservation.total_price}</p>
+                <button onclick="cancelReservation(${reservation.id})">Cancel Reservation</button>
+              </div>
+            `;
+          });
+        }
+      } else {
+        alert('Failed to load reservations.');
+      }
+    }
+
+    async function cancelReservation(bookingId) {
+      const res = await fetch(`/api/user/reserves/${bookingId}/cancel/`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        alert('Reservation cancelled successfully.');
+        loadReservations();
+      } else {
+        alert('Failed to cancel the reservation.');
+      }
+    }
+
+    // Load profile and reservations
     loadProfile();
+    loadReservations();
   </script>
-</body>
-</html>
+{% endblock %}
