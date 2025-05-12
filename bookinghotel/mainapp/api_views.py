@@ -8,6 +8,7 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.core.cache import cache
+from .tasks import confirm_booking
 
 from .models import City, Hotel, Room, Review, Booking, User
 from .serializers import CitySerializer, HotelSerializer, RoomSerializer, ReviewSerializer, UserSerializer, \
@@ -166,7 +167,7 @@ class RoomReserveAPIView(GenericAPIView):
             check_out=check_out,
             status=Booking.BookingStatus.PENDING
         )
-
+        confirm_booking.apply_async((booking.id,), countdown=30)
         return Response(BookingSerializer(booking).data, status=status.HTTP_201_CREATED)
 
 

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Профиль пользователя</title>
+  <link rel="stylesheet" href="{% static 'main.css' %}">
+</head>
+<body>
+  <header>
+    <div class="logo">Бронирование отелей</div>
+    <nav>
+      <a href="/">Главная</a>
+      <a href="/logout/">Выйти</a>
+    </nav>
+  </header>
+
+  <section class="profile-container">
+    <h2>Профиль</h2>
+    <p>Добро пожаловать, {{ user.username }}!</p>
+    <div id="profile-info">
+      <p><strong>Имя пользователя:</strong> <span id="username"></span></p>
+      <p><strong>Email:</strong> <span id="email"></span></p>
+    </div>
+
+    <div class="profile-links">
+      <a href="/reservations/" class="profile-button">Мои бронирования</a>
+      <a href="/reviews/" class="profile-button">Мои отзывы</a>
+    </div>
+  </section>
+
+  <script>
+    async function loadProfile() {
+      try {
+        const res = await fetch('/api/user/profile/', {
+          headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+          }
+        });
+
+        if (!res.ok) throw new Error('Ошибка получения профиля');
+
+        const data = await res.json();
+        document.getElementById('username').textContent = data.username;
+        document.getElementById('email').textContent = data.email;
+
+      } catch (error) {
+        alert('Ошибка загрузки профиля. Возможно, вы не авторизованы.');
+        window.location.href = '/login/';
+      }
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>

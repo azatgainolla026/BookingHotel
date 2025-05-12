@@ -38,6 +38,18 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 
+
+  celery:
+    build: .
+    command: celery -A bookinghotel worker --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - db
+    env_file:
+      - .env
+
   nginx:
     image: nginx:latest
     ports:
