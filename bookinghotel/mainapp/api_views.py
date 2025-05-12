@@ -36,26 +36,6 @@ class HotelViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         return [IsAdminUser()]
 
-
-class RoomViewSet(viewsets.ModelViewSet):
-    queryset = Room.objects.all()
-    serializer_class = RoomSerializer
-
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [AllowAny()]
-        return [IsAdminUser()]
-
-
-class HotelViewSet(viewsets.ModelViewSet):
-    queryset = Hotel.objects.all()
-    serializer_class = HotelSerializer
-
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [AllowAny()]
-        return [IsAdminUser()]
-
     def list(self, request, *args, **kwargs):
         cache_key = "hotels_list"
         cached_data = cache.get(cache_key)
@@ -70,6 +50,24 @@ class HotelViewSet(viewsets.ModelViewSet):
         cache.set(cache_key, data, timeout=300)
 
         return Response(data)
+
+
+class RoomViewSet(viewsets.ModelViewSet):
+    queryset = Room.objects.all()
+    serializer_class = RoomSerializer
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAdminUser()]
+
+
+class HotelListByCityAPIView(generics.ListAPIView):
+    serializer_class = HotelSerializer
+
+    def get_queryset(self):
+        return Hotel.objects.filter(city_id=self.kwargs['city_id'])
+
 
 class RoomListByHotelAPIView(generics.ListAPIView):
     serializer_class = RoomSerializer
