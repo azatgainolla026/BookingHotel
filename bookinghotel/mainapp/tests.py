@@ -31,7 +31,9 @@ class AuthTests(APITestCase):
         response = self.client.post(self.register_url, {
             'username': 'newuser',
             'email': 'new@example.com',
-            'password': 'newpassword123'
+            'password': 'newpassword123',
+            "password_confirm": "newpassword123"
+
         })
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn('token', response.data)
