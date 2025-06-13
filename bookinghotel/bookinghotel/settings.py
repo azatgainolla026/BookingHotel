@@ -19,7 +19,7 @@ SECRET_KEY = 'django-insecure-f#r1dlwm8%#dz#oo@sh00m-#5x0lap9u565)^ui*9os&6&$k@d
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['192.168.8.223']
 
 # Application definition
 
@@ -144,7 +144,7 @@ MINIO_BUCKET_NAME = os.getenv("MINIO_BUCKET_NAME", "media")
 AWS_S3_USE_SSL = False
 AWS_S3_SECURE_URLS = False
 AWS_S3_URL_PROTOCOL = "http:"
-AWS_S3_CUSTOM_DOMAIN = f"localhost:9000/{MINIO_BUCKET_NAME}"
+AWS_S3_CUSTOM_DOMAIN = f"192.168.8.223:9000/{MINIO_BUCKET_NAME}"
 MEDIA_URL = f"http://{AWS_S3_CUSTOM_DOMAIN}/"
 
 
