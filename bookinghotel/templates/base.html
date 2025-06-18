@@ -1,0 +1,95 @@
+<!-- mainapp/templates/mainapp/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hotel Booking</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f8f9fa;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #343a40;
+            padding: 1rem 2rem;
+            color: white;
+        }
+
+        .nav-left {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .nav-center a,
+        .nav-right button,
+        .nav-right a {
+            margin: 0 0.5rem;
+            text-decoration: none;
+            color: white;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .nav-center a:hover,
+        .nav-right button:hover,
+        .nav-right a:hover {
+            text-decoration: underline;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+<nav>
+    <div class="nav-left">Hotel Booking</div>
+    <div class="nav-center">
+        <a href="/">Main</a>
+        <a href="/hotels">Hotels</a>
+        <a href="#" onclick="goToProfile()">Profile</a>
+    </div>
+    <div class="nav-right" id="navRight">
+        <!-- Filled by JS -->
+    </div>
+</nav>
+
+<div class="content">
+    {% block content %}
+    {% endblock %}
+</div>
+
+<script>
+    const token = localStorage.getItem('access');
+    const navRight = document.getElementById('navRight');
+
+    if (token) {
+        navRight.innerHTML = '<button onclick="logout()">Logout</button>';
+    } else {
+        navRight.innerHTML = '<a href="/login/">Login</a>';
+    }
+
+    function logout() {
+        localStorage.removeItem('access');
+        localStorage.removeItem('refresh');
+        window.location.href = '/login/';
+    }
+
+    function goToProfile() {
+        const token = localStorage.getItem('access');
+        if (!token) {
+            window.location.href = '/login/';
+        } else {
+            window.location.href = '/profile/';
+        }
+    }
+</script>
+</body>
+</html>

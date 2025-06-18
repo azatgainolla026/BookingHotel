@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div style="max-width: 800px; margin: auto; padding: 1rem;">
+    <div id="roomDetail" style="margin-bottom: 2rem;"></div>
+
+    <div id="reserveBlock" style="margin-bottom: 2rem; display: none;">
+      <button onclick="openReserveForm()" style="padding: 0.5rem 1rem; background-color: #2d89ef; color: white; border: none; border-radius: 5px;">
+        Reserve
+      </button>
+    </div>
+
+    <div id="reserveForm" style="display: none; margin-bottom: 2rem;">
+      <h3>Reserve this Room</h3>
+      <label>Check-in date: <input type="date" id="checkInDate" onchange="updatePrice()" /></label><br/><br/>
+      <label>Check-out date: <input type="date" id="checkOutDate" onchange="updatePrice()" /></label><br/><br/>
+
+      <div id="priceSummary" style="margin-bottom: 1rem;"></div>
+
+      <button onclick="submitReservation()" style="padding: 0.5rem 1rem; background-color: green; color: white; border: none; border-radius: 5px;">
+        Submit Reservation
+      </button>
+    </div>
+
+    <div>
+      <a href="#" id="backToHotel">&larr; Back to Hotel</a>
+    </div>
+  </div>
+
+  <script>
+    let pricePerNight = 0;
+    let hotelId = null;
+
+    const pathParts = window.location.pathname.split('/');
+    const roomId = pathParts[pathParts.length - 2] || pathParts[pathParts.length - 1];
+
+    async function loadRoomDetails() {
+      const res = await fetch(`/api/rooms/${roomId}/`);
+      const room = await res.json();
+      pricePerNight = parseFloat(room.price_per_night);
+      hotelId = room.hotel.id;
+
+      const container = document.getElementById('roomDetail');
+      container.innerHTML = `
+        <h2>${room.room_type} Room</h2>
+        <img src="${room.image}" alt="${room.room_type}" style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 8px;" />
+        <p><strong>Price:</strong> $${room.price_per_night} per night</p>
+        <p><strong>Available:</strong> ${room.stock}</p>
+        <p><strong>Hotel:</strong> ${room.hotel.name}</p>
+        <p><strong>City:</strong> ${room.hotel.city.name}</p>
+        <p><strong>Address:</strong> ${room.hotel.address}</p>
+      `;
+
+      document.getElementById('backToHotel').href = `/hotels/${hotelId}/`;
+    }
+
+    function openReserveForm() {
+      document.getElementById('reserveForm').style.display = 'block';
+    }
+
+    function updatePrice() {
+      const checkIn = new Date(document.getElementById('checkInDate').value);
+      const checkOut = new Date(document.getElementById('checkOutDate').value);
+      const priceBlock = document.getElementById('priceSummary');
+      const today = new Date();
+
+      if (!isValidDate(checkIn) || !isValidDate(checkOut) || checkOut <= checkIn || checkIn < today) {
+        priceBlock.innerHTML = '';
+        return;
+      }
+
+      const nights = Math.round((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+      const totalPrice = nights * pricePerNight;
+
+      if (nights <= 0) {
+        priceBlock.innerHTML = '<p>Please select valid dates.</p>';
+        return;
+      }
+
+      priceBlock.innerHTML = `
+        <p><strong>Nights:</strong> ${nights}</p>
+        <p><strong>Total Price:</strong> $${totalPrice.toFixed(2)}</p>
+      `;
+    }
+
+    function isValidDate(d) {
+      return d instanceof Date && !isNaN(d);
+    }
+
+    async function submitReservation() {
+      const checkIn = document.getElementById('checkInDate').value;
+      const checkOut = document.getElementById('checkOutDate').value;
+      const token = localStorage.getItem('access');
+
+      if (!checkIn || !checkOut) {
+        alert('Please select both check-in and check-out dates.');
+        return;
+      }
+
+      const res = await fetch(`/api/rooms/${roomId}/reserve/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify({ check_in: checkIn, check_out: checkOut })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        alert(`Reservation successful! Status: ${data.status}`);
+        location.reload();
+      } else {
+        const error = await res.json();
+        alert('Reservation failed: ' + JSON.stringify(error));
+      }
+    }
+
+    if (localStorage.getItem('access')) {
+      document.getElementById('reserveBlock').style.display = 'block';
+    }
+
+    loadRoomDetails();
+  </script>
+{% endblock %}

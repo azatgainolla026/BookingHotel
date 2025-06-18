@@ -1,0 +1,33 @@
+stages:
+  - test
+  - deploy
+
+test-deploy:
+  stage: test
+  script:
+    - docker-compose down
+    - docker compose up -d --build
+    - docker exec web-back python manage.py test
+    - docker-compose down
+    - docker-compose up -d --build
+  tags:
+    - dev
+  only:
+    - dev  
+
+
+deploy-prod:
+  stage: deploy
+  script:
+    # Удаляем старые строки, если есть
+    - sed -i '/^DJANGO_DEBUG=/d' .env
+    - sed -i '/^CUSTOM_DOMAIN=/d' .env
+    # Добавляем новые переменные
+    - echo "DJANGO_DEBUG=False" >> .env
+    - echo "CUSTOM_DOMAIN=192.168.8.224:9000" >> .env
+    - docker-compose down
+    - docker-compose up -d --build
+  tags:
+    - prod
+  only:
+    - main  
